@@ -12,7 +12,7 @@ const errorHandler = require("./middleware/errorHandler");
 dotenv.config();
 
 const app = express();
-
+app.set("trust proxy", 1);
 /* =========================
    BODY PARSER
 ========================= */
@@ -22,7 +22,16 @@ app.use(express.urlencoded({ extended: true }));
 /* =========================
    DATABASE CONNECTION
 ========================= */
-connectDB();
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (error) {
+    console.error("DB Connection Error:", error);
+    res.status(500).json({ success: false, message: "Database connection failed" });
+  }
+});
+
 
 
 /* =========================
