@@ -10,13 +10,18 @@ const s3 = new S3Client({
 });
 
 exports.getPresignedUrl = async (key) => {
+  const finalKey = key.startsWith("services/")
+    ? key
+    : `services/${key}`;
+
   const command = new GetObjectCommand({
     Bucket: process.env.AWS_BUCKET,
-    Key: key,
+    Key: finalKey,
   });
 
   return await getSignedUrl(s3, command, { expiresIn: 3600 });
 };
+
 
 exports.deleteFromS3 = async (key) => {
   const command = new DeleteObjectCommand({
