@@ -1,4 +1,9 @@
-const { S3Client, GetObjectCommand, DeleteObjectCommand } = require("@aws-sdk/client-s3");
+const {
+  S3Client,
+  GetObjectCommand,
+  DeleteObjectCommand,
+} = require("@aws-sdk/client-s3");
+
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 
 const s3 = new S3Client({
@@ -9,25 +14,36 @@ const s3 = new S3Client({
   },
 });
 
+// 🔥 GET PRESIGNED URL
 exports.getPresignedUrl = async (key) => {
-  const finalKey = key.startsWith("services/")
-    ? key
-    : `services/${key}`;
+  try {
+    if (!key) return null;
 
-  const command = new GetObjectCommand({
-    Bucket: process.env.AWS_BUCKET,
-    Key: finalKey,
-  });
+    const command = new GetObjectCommand({
+      Bucket: process.env.AWS_BUCKET,
+      Key: key,
+    });
 
-  return await getSignedUrl(s3, command, { expiresIn: 3600 });
+    return await getSignedUrl(s3, command, { expiresIn: 3600 });
+  } catch (error) {
+    console.error("S3 PRESIGN ERROR:", error.message);
+    return null; // 🔥 never crash
+  }
 };
 
 
+// 🔥 DELETE FILE
 exports.deleteFromS3 = async (key) => {
-  const command = new DeleteObjectCommand({
-    Bucket: process.env.AWS_BUCKET,
-    Key: key,
-  });
+  try {
+    if (!key) return;
 
-  await s3.send(command);
+    const command = new DeleteObjectCommand({
+      Bucket: process.env.AWS_BUCKET,
+      Key: key,
+    });
+
+    await s3.send(command);
+  } catch (error) {
+    console.error("S3 DELETE ERROR:", error);
+  }
 };

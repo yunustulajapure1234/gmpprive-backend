@@ -1,7 +1,5 @@
 const multer = require("multer");
-const { S3Client } = require("@aws-sdk/client-s3");
-const { Upload } = require("@aws-sdk/lib-storage");
-const sharp = require("sharp");
+const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
 
 const s3 = new S3Client({
   region: process.env.AWS_REGION,
@@ -15,28 +13,22 @@ const storage = multer.memoryStorage();
 
 const upload = multer({
   storage,
-  limits: { fileSize: 10 * 1024 * 1024 },
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
 });
 
 const uploadToS3 = async (file) => {
-  const optimized = await sharp(file.buffer)
-    .resize({ width: 800 })
-    .jpeg({ quality: 70 })
-    .toBuffer();
+  if (!file) return null;
 
-  const key = `services/${Date.now()}.jpg`;
+  const key = `services/${Date.now()}-${file.originalname}`;
 
-  const uploader = new Upload({
-    client: s3,
-    params: {
-      Bucket: process.env.AWS_BUCKET,
-      Key: key,
-      Body: optimized,
-      ContentType: "image/jpeg",
-    },
+  const command = new PutObjectCommand({
+    Bucket: process.env.AWS_BUCKET,
+    Key: key,
+    Body: file.buffer,
+    ContentType: file.mimetype,
   });
 
-  await uploader.done();
+  await s3.send(command);
 
   return key;
 };

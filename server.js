@@ -117,6 +117,18 @@ app.use((req, res) => {
 app.use(errorHandler);
 
 /* =========================
+   START SERVER (LOCAL ONLY)
+========================= */
+
+if (process.env.NODE_ENV !== "production") {
+  const PORT = process.env.PORT || 5000;
+
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+  });
+}
+
+/* =========================
    EXPORT FOR VERCEL
 ========================= */
 module.exports = app;

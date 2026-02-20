@@ -5,26 +5,32 @@ const Booking = require("../models/Booking");
 
 exports.createBooking = async (req, res, next) => {
   try {
+    const bookingNumber = `BK${Date.now()}`;
 
-    const bookingNumber = "BK" + Date.now();
-
-    // ✅ FIX: Convert duration to Number
-    const formattedServices = req.body.services.map(service => ({
-      ...service,
-      duration: service.duration
-        ? parseInt(service.duration)
-        : 0
+    const formattedServices = (req.body.services || []).map(service => ({
+      itemId: service.itemId,
+      type: service.type || "service",
+      name: service.name,
+      nameAr: service.nameAr || "",
+      price: Number(service.price) || 0,
+      quantity: Number(service.quantity) || 1,
+      duration: isNaN(Number(service.duration)) ? 0 : Number(service.duration) || 0,
+      packageItems: service.packageItems || [],
     }));
 
     const booking = await Booking.create({
-      ...req.body,
-      services: formattedServices, // 👈 IMPORTANT
+      customerName: req.body.customerName,
+      phone: req.body.phone,
+      date: req.body.date,
+      time: req.body.time,
+      address: req.body.address,
+      services: formattedServices,
+      totalAmount: Number(req.body.totalAmount) || 0,
       bookingNumber,
     });
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
-      message: "Booking created successfully",
       data: booking,
     });
 
@@ -35,11 +41,15 @@ exports.createBooking = async (req, res, next) => {
 
 
 
+
 /* ================= GET ALL BOOKINGS ================= */
 
 exports.getAllBookings = async (req, res, next) => {
   try {
-    const bookings = await Booking.find().sort({ createdAt: -1 });
+    const bookings = await Booking.find()
+  .sort({ createdAt: -1 })
+  .lean();
+
 
     res.status(200).json({
       success: true,
@@ -51,34 +61,6 @@ exports.getAllBookings = async (req, res, next) => {
 };
 
 /* ================= UPDATE BOOKING STATUS ================= */
-
-/* ================= UPDATE BOOKING STATUS ================= */
-
-// exports.updateBookingStatus = async (req, res, next) => {
-//   try {
-//     const { status } = req.body;
-
-//     const booking = await Booking.findById(req.params.id);
-
-//     if (!booking) {
-//       return res.status(404).json({
-//         success: false,
-//         message: "Booking not found",
-//       });
-//     }
-
-//     booking.status = status;
-//     await booking.save();
-
-//     res.status(200).json({
-//       success: true,
-//       message: "Status updated successfully",
-//       data: booking,
-//     });
-//   } catch (error) {
-//     next(error);
-//   }
-// };
 
 exports.updateBookingStatus = async (req, res, next) => {
   try {
@@ -114,37 +96,30 @@ exports.getBookingStats = async (req, res, next) => {
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
 
-    const weekStart = new Date();
+    const weekStart = new Date(now);
     weekStart.setDate(now.getDate() - 7);
 
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-
     const yearStart = new Date(now.getFullYear(), 0, 1);
 
-    const totalBookings = await Booking.countDocuments();
-
-    const todayBookings = await Booking.countDocuments({
-      createdAt: { $gte: todayStart },
-    });
-
-    const weeklyBookings = await Booking.countDocuments({
-      createdAt: { $gte: weekStart },
-    });
-
-    const monthlyBookings = await Booking.countDocuments({
-      createdAt: { $gte: monthStart },
-    });
-
-    const yearlyBookings = await Booking.countDocuments({
-      createdAt: { $gte: yearStart },
-    });
-
-    const revenue = await Booking.aggregate([
-      { $match: { status: "completed" } },
-      { $group: { _id: null, total: { $sum: "$totalAmount" } } },
+    const [
+      totalBookings,
+      todayBookings,
+      weeklyBookings,
+      monthlyBookings,
+      yearlyBookings,
+      revenueResult
+    ] = await Promise.all([
+      Booking.countDocuments(),
+      Booking.countDocuments({ createdAt: { $gte: todayStart } }),
+      Booking.countDocuments({ createdAt: { $gte: weekStart } }),
+      Booking.countDocuments({ createdAt: { $gte: monthStart } }),
+      Booking.countDocuments({ createdAt: { $gte: yearStart } }),
+      Booking.aggregate([
+        { $match: { status: "completed" } },
+        { $group: { _id: null, total: { $sum: "$totalAmount" } } }
+      ])
     ]);
-
-    const totalRevenue = revenue.length > 0 ? revenue[0].total : 0;
 
     res.status(200).json({
       success: true,
@@ -154,34 +129,36 @@ exports.getBookingStats = async (req, res, next) => {
         weeklyBookings,
         monthlyBookings,
         yearlyBookings,
-        totalRevenue,
-      },
+        totalRevenue: revenueResult[0]?.total || 0,
+      }
     });
+
   } catch (error) {
     next(error);
   }
 };
 
+
 /* ================= DELETE BOOKING ================= */
 
 exports.deleteBooking = async (req, res, next) => {
   try {
-    const booking = await Booking.findById(req.params.id);
+    const deleted = await Booking.findByIdAndDelete(req.params.id);
 
-    if (!booking) {
+    if (!deleted) {
       return res.status(404).json({
         success: false,
         message: "Booking not found",
       });
     }
 
-    await booking.deleteOne();
-
     res.status(200).json({
       success: true,
       message: "Booking deleted successfully",
     });
+
   } catch (error) {
     next(error);
   }
 };
+
