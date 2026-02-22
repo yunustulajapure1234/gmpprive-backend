@@ -21,6 +21,7 @@ exports.createService = async (req, res) => {
   try {
     let imageKey = null;
 
+    // Upload image if exists
     if (req.file) {
       imageKey = await uploadToS3(req.file);
     }
@@ -37,6 +38,7 @@ exports.createService = async (req, res) => {
       createdBy: req.admin.id,
     };
 
+    // Duration logic
     if (req.body.durations) {
       const parsed = JSON.parse(req.body.durations);
       data.durations = parsed;
@@ -49,19 +51,32 @@ exports.createService = async (req, res) => {
     }
 
     const service = await Service.create(data);
-    const [withUrl] = await addPresignedUrls([service]);
 
-    res.status(201).json({ success: true, data: withUrl });
+    // 🔥 Only ONE response
+    res.status(201).json({
+      success: true,
+      data: service,
+    });
+
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    console.error("CREATE ERROR:", err);
+
+    if (!res.headersSent) {
+      res.status(500).json({
+        success: false,
+        message: err.message,
+      });
+    }
   }
 };
 
+
 exports.getAllServices = async (req, res) => {
   try {
-    const services = await Service.find({ isActive: true })
-      .sort({ createdAt: -1 });
+   const services = await Service.find({ isActive: true })
+  .sort({ createdAt: -1 })
+  .lean(); //
+
 
     const servicesWithUrl = await addPresignedUrls(services);
 
