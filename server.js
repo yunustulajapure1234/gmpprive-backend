@@ -105,7 +105,10 @@ app.use("/api/services", require("./routes/serviceRoutes"));
 app.use("/api/bookings", require("./routes/bookingRoutes"));
 app.use("/api/upload", require("./routes/uploadRoutes"));
 app.use("/api/packages", require("./routes/packagesRoutes"));
-
+// ✅ NEW - Inventory & Staff
+app.use("/api/inventory", require("./routes/inventoryRoutes"));
+app.use("/api/staff",     require("./routes/staffRoutes"));
+app.use("/api/staff", require("./routes/staffRoutes"));
 /* =========================================================
    404 HANDLER
 ========================================================= */

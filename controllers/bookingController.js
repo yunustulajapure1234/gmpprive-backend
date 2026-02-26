@@ -1,5 +1,5 @@
 const Booking = require("../models/Booking");
-
+const { autoDeductForBooking } = require("./inventoryController");
 
 /* ================= CREATE BOOKING ================= */
 
@@ -39,17 +39,13 @@ exports.createBooking = async (req, res, next) => {
   }
 };
 
-
-
-
 /* ================= GET ALL BOOKINGS ================= */
 
 exports.getAllBookings = async (req, res, next) => {
   try {
     const bookings = await Booking.find()
-  .sort({ createdAt: -1 })
-  .lean();
-
+      .sort({ createdAt: -1 })
+      .lean();
 
     res.status(200).json({
       success: true,
@@ -64,23 +60,49 @@ exports.getAllBookings = async (req, res, next) => {
 
 exports.updateBookingStatus = async (req, res, next) => {
   try {
-    const booking = await Booking.findByIdAndUpdate(
-      req.params.id,
-      { status: req.body.status },
-      { new: true }
-    );
+    const { status } = req.body;
 
-    if (!booking) {
+    // ⚡ Pehle purana status fetch karo (double deduction rokne ke liye)
+    const existingBooking = await Booking.findById(req.params.id);
+
+    if (!existingBooking) {
       return res.status(404).json({
         success: false,
         message: "Booking not found",
       });
     }
 
-    res.status(200).json({
+    const previousStatus = existingBooking.status;
+
+    // Status update karo
+    const booking = await Booking.findByIdAndUpdate(
+      req.params.id,
+      { status },
+      { new: true }
+    );
+
+    const response = {
       success: true,
       data: booking,
-    });
+    };
+
+    // ⚡ AUTO DEDUCT - sirf tab jab "completed" ho aur pehle completed nahi tha
+    if (status === "completed" && previousStatus !== "completed") {
+      const deductResult = await autoDeductForBooking(
+        booking._id,
+        req.admin._id
+      );
+
+      response.inventoryUpdate = {
+        message: deductResult.success
+          ? "Inventory auto-updated for this booking"
+          : "Inventory update had some issues",
+        details: deductResult.results || [],
+        warnings: deductResult.warnings || [],
+      };
+    }
+
+    res.status(200).json(response);
 
   } catch (error) {
     next(error);
@@ -138,7 +160,6 @@ exports.getBookingStats = async (req, res, next) => {
   }
 };
 
-
 /* ================= DELETE BOOKING ================= */
 
 exports.deleteBooking = async (req, res, next) => {
@@ -161,4 +182,3 @@ exports.deleteBooking = async (req, res, next) => {
     next(error);
   }
 };
-
