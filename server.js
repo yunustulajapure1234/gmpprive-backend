@@ -7,7 +7,7 @@ const rateLimit = require("express-rate-limit");
 
 const connectDB = require("./config/db");
 const errorHandler = require("./middleware/errorHandler");
-
+const membershipRoutes = require("./routes/membershipRoutes");
 dotenv.config();
 
 const app = express();
@@ -109,6 +109,8 @@ app.use("/api/packages", require("./routes/packagesRoutes"));
 app.use("/api/inventory", require("./routes/inventoryRoutes"));
 app.use("/api/staff",     require("./routes/staffRoutes"));
 app.use("/api/staff", require("./routes/staffRoutes"));
+
+app.use("/api/membership", membershipRoutes);
 /* =========================================================
    404 HANDLER
 ========================================================= */
