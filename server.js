@@ -7,7 +7,7 @@ const rateLimit = require("express-rate-limit");
 
 const connectDB = require("./config/db");
 const errorHandler = require("./middleware/errorHandler");
-const membershipRoutes = require("./routes/membershipRoutes");
+
 dotenv.config();
 
 const app = express();
@@ -100,17 +100,15 @@ app.use("/api/", limiter);
 /* =========================================================
    ROUTES
 ========================================================= */
-app.use("/api/admin", require("./routes/adminRoutes"));
-app.use("/api/services", require("./routes/serviceRoutes"));
-app.use("/api/bookings", require("./routes/bookingRoutes"));
-app.use("/api/upload", require("./routes/uploadRoutes"));
-app.use("/api/packages", require("./routes/packagesRoutes"));
-// ✅ NEW - Inventory & Staff
-app.use("/api/inventory", require("./routes/inventoryRoutes"));
-app.use("/api/staff",     require("./routes/staffRoutes"));
-app.use("/api/staff", require("./routes/staffRoutes"));
+app.use("/api/admin",      require("./routes/adminRoutes"));
+app.use("/api/services",   require("./routes/serviceRoutes"));
+app.use("/api/bookings",   require("./routes/bookingRoutes"));
+app.use("/api/upload",     require("./routes/uploadRoutes"));
+app.use("/api/packages",   require("./routes/packagesRoutes"));
+app.use("/api/inventory",  require("./routes/inventoryRoutes"));
+app.use("/api/staff",      require("./routes/staffRoutes"));      // ✅ single — no duplicate
+app.use("/api/membership", require("./routes/membershipRoutes")); // ✅ NEW
 
-app.use("/api/membership", membershipRoutes);
 /* =========================================================
    404 HANDLER
 ========================================================= */

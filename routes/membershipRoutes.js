@@ -7,20 +7,21 @@ const {
 } = require("../controllers/membershipController");
 const { protect, authorize } = require("../middleware/auth");
 
+/* ── PUBLIC — landing page use karta hai, no auth ── */
+router.get("/plans/public", getPlans);
+
+/* ── PROTECTED — admin only ── */
 router.use(protect);
 
-/* ── Plans ── */
 router.get("/plans",              getPlans);
 router.post("/plans",             createPlan);
 router.get("/plans/:id",          getPlan);
 router.put("/plans/:id",          updatePlan);
 router.delete("/plans/:id",       authorize("super-admin"), deletePlan);
 
-/* ── Stats ── */
 router.get("/stats",              getMembershipStats);
 router.post("/sync-expired",      syncExpiredStatus);
 
-/* ── Members ── */
 router.get("/",                   getMembers);
 router.post("/",                  createMember);
 router.get("/:id",                getMember);
